@@ -15,5 +15,7 @@
 #define ERR_MEM_IOB		0x09	/* Memory Index out of bound  */
 #define ERR_MEM_IVS		0x0A	/* Invalid Signal for Memory Agent  */
 #define ERR_ALU_OVF		0x0B	/* ALU result overflow */
+#define ERR_INV_INSTR   0x0C    /* Invalid Instruction */
+#define ERR_INV_CNAME   0x0D    /* Invalid Circuit Element Name */
 
 #endif

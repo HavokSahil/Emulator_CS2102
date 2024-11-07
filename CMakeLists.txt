@@ -41,7 +41,7 @@ target_include_directories(emulator PUBLIC ${INCLUDE_DIR})
 enable_testing()
 
 add_executable(test_devices ${TESTS_DIR}/test_devices.c ${SRC_DIR}/devices.c)
-add_executable(test_datapath ${TESTS_DIR}/test_datapath.c ${SRC_DIR}/datapath.c)
+add_executable(test_datapath ${TESTS_DIR}/test_datapath.c ${SRC_DIR}/datapath.c ${SRC_DIR}/devices.c)
 add_executable(test_api ${TESTS_DIR}/test_api.c ${SRC_DIR}/api.c)
 add_executable(test_ui ${TESTS_DIR}/test_ui.c ${SRC_DIR}/ui.c)
 

@@ -105,11 +105,23 @@ CElem* regA;
 	if (err != SUCCESS)
 		return err;
 
-	wenA->state = DISABLE;
 	doutA->state = 100;
 	dinA->state = 200;
-	wenB->state = ENABLE;
+
+	wenA->state = DISABLE;
+	wenB->state = DISABLE;
+
+	err = regA->propogate(regA);
+	if (err != SUCCESS)
+		return err;
 	
+	err = regB->propogate(regB);
+	if (err != SUCCESS)
+		return err;
+
+	wenA->state = ENABLE;
+	wenB->state = ENABLE;
+
 	printf("\nClock Pulse\n");
 	debug_print_port(dinA);
 	debug_print_port(doutA);
@@ -119,14 +131,23 @@ CElem* regA;
 	err = regA->transition(regA);
 	if (err != SUCCESS)
 		return err;
-	
+
+	err = regB->transition(regB);
+	if (err != SUCCESS)
+		return err;
+
 	printf("\nClock Pulse\n");
 	debug_print_port(dinA);
 	debug_print_port(doutA);
 	debug_print_port(dinB);
 	debug_print_port(doutB);
 
-	err = regB->transition(regB);
+	err = regA->propogate(regA);
+	if (err != SUCCESS)
+		return err;
+	
+
+	err = regB->propogate(regB);
 	if (err != SUCCESS)
 		return err;
 
@@ -375,6 +396,63 @@ int test_alu() {
 	return SUCCESS;
 }
 
+int test_adder() {
+	printf("*******************************************\nTesting Adder Element\n*******************************************\n");
+	CElem* adder;
+	EmErr err = dev_new_adder(NAME_ADDER, &adder);
+	if (err != SUCCESS)
+		return err;
+	
+	debug_print_celem(adder);
+
+	Port* ina;
+	err = adder->get_port(adder, TYPE_PORT_INPUT, ID_PORT_ADDER_INA, &ina);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* inb;
+	err = adder->get_port(adder, TYPE_PORT_INPUT, ID_PORT_ADDER_INB, &inb);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* out;
+	err = adder->get_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_OUT, &out);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* zero;
+	err = adder->get_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_ZERO, &zero);	
+	if (err != SUCCESS)
+		return err;
+	
+	Port* neg;
+	err = adder->get_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_NEG, &neg);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* carry;
+	err = adder->get_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_CARRY, &carry);
+	if (err != SUCCESS)
+		return err;
+	
+	ina->state = 0x0FFFFFFF;
+	inb->state = 0x01;
+	
+	err = adder->transition(adder);
+	if (err != SUCCESS)
+		return err;
+	
+	printf("First Operation\n");
+	debug_print_port(ina);
+	debug_print_port(inb);
+	debug_print_port(out);
+	debug_print_port(zero);
+	debug_print_port(neg);
+	debug_print_port(carry);
+	
+	return SUCCESS;
+}
+
 int main() {
 	int err = test_celem();
 	if (err != SUCCESS)
@@ -391,5 +469,9 @@ int main() {
 	err = test_alu();
 	if (err != SUCCESS)
 		return err;
+	err = test_adder();
+	if (err != SUCCESS)
+		return err;
+		
 	return SUCCESS;
 }

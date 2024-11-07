@@ -22,14 +22,14 @@ static EmErr _dev_bus_update(Bus* bus) {
 		return err;
 
 	bus->state = state;
-	
+
 	EmInt iter;
 	for (iter = 0; iter<bus->n_slaves; iter++) {
-		Port* slaves = (bus->slaves)[iter];
+		Port* slave = (bus->slaves)[iter];
 		/* Trigger update on each slave port */
-		err = slaves->update(slaves, 0);
+		err = slave->update(slave, state);
 		if (err != SUCCESS)
-			return ERR_UPD_SLV; 
+			return err;
 	}
 
 	return SUCCESS;
@@ -118,7 +118,7 @@ void debug_print_bus(Bus* bus) {
 	printf("Bus: %p\n--------------------\n", bus);
 	if (bus == NULL)
 		return;
-	printf("%-*s %-*d\n--------------------\n", 8, "Field", 8, "Value");
+	printf("%-*s %-*s\n--------------------\n", 8, "Field", 8, "Value");
 	printf("%-*s %-*d\n", 8, "Bus Id", 8, bus->id);
 	printf("%-*s %-*p\n", 8, "Master", 8, bus->master);
 	printf("%-*s %-*d\n", 8, "State", 8, bus->state);
@@ -158,6 +158,7 @@ static EmErr _dev_port_is_slave_of(Bus* bus, Port* port, EmBool* ptr) {
 }
 
 EmErr _dev_port_update(Port* port, EmState data) {
+
 	if (port == NULL)
 		return ERR_INV_PTR;
 
@@ -171,28 +172,16 @@ EmErr _dev_port_update(Port* port, EmState data) {
 		return err;
 	}
 	/* Case when the port is input port, update the current port state based on the bus state [data is unused]   */
-	Bus* bus = port->bus;
-	if (bus == NULL)
+
+	port->state = data;
+	CElem* parent = port->parent;
+
+	if (parent == NULL) 
 		return ERR_INV_PTR;
 
-	EmState state;
-	EmErr err = bus->tap(bus, &state);
-	if (err != SUCCESS)
-		return err;
-
-	/* Check if the current port is the slave of the bus */
-	EmBool is_slave;
-	err = _dev_port_is_slave_of(bus, port, &is_slave);
-	if (err != SUCCESS)
-		return err;
-
-	if (is_slave == TRUE) {
-		port->state = state;
-		CElem* parent = port->parent;
-		if (parent == NULL)
-			return SUCCESS;
-		if (parent->type == TYPE_CIRC_ELEM_NSEQ)	/* Instantaneously Propogate the changes through the non-sequential ement   */
-			return parent->transition(parent);
+	if (parent->type == TYPE_CIRC_ELEM_NSEQ) {
+		/* Instantaneously Propogate the changes through the non-sequential element   */
+		return parent->transition(parent);
 	}
 
 	return SUCCESS;
@@ -394,6 +383,7 @@ EmErr dev_new_celem(EmType type, CElem** ptr) {
 	celem->num_output_ports = 0;
 
 	celem->transition = NULL;
+	celem->propogate = NULL;
 	celem->add_port = _dev_celem_add_port;
 	celem->get_port = _dev_celem_get_port;
 	celem->destroy = _dev_celem_destroy;
@@ -436,6 +426,7 @@ void debug_print_celem(CElem* celem) {
  * -----------------------------------------*/
 
 static EmErr _dev_register_tf(CElem* celem) {	/* Register Transition Function  */
+
 	if (celem == NULL)
 		return ERR_INV_PTR;	
 
@@ -468,9 +459,23 @@ static EmErr _dev_register_tf(CElem* celem) {	/* Register Transition Function  *
 		if (err != SUCCESS)
 			return err;
 		
-		err = dout->update(dout, data);		
-		return err;
+		dout->state = data;		
 	}
+
+	return SUCCESS;
+}
+
+static EmErr  _dev_register_pf(CElem* celem) {
+	if (celem == NULL)
+		return ERR_INV_PTR;
+
+	Port* dout;
+	EmErr err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_REG_DOUT, &dout);
+	if (err != SUCCESS)
+		return err;
+
+	if (dout == NULL)
+		return ERR_INV_PTR;
 
 	err = dout->update(dout, dout->state);
 	return err;
@@ -496,7 +501,9 @@ EmErr dev_new_register(EmName name, CElem** ptr) {
 		return err;
 	
 	celem->name = name;
+
 	celem->transition = _dev_register_tf;
+	celem->propogate = _dev_register_pf;
 
 	*ptr = celem;
 
@@ -708,9 +715,17 @@ EmErr dev_new_mux(EmName name, EmSize ctrl_bits, CElem** ptr) {
 /**
  * Definations for Memory Element
  * ---------------------------------*/
-static EmErr _dev_mem_manager(CElem* celem, EmSignal signal, EmData *data, EmData addr) {
+static EmErr _dev_mem_manager(CElem* celem, EmSignal signal, EmData *data, EmData addr, EmType dump, EmData** ptr) {
 
 	static EmData* mem = NULL;
+
+	if (dump == TYPE_MEM_DUMP) {
+		if (mem == NULL)
+			return ERR_INV_PTR;
+
+		*ptr = mem;
+		return SUCCESS;
+	}
 
 	if (signal == SIGNAL_MEM_INIT) {
 		if (mem != NULL)
@@ -737,7 +752,6 @@ static EmErr _dev_mem_manager(CElem* celem, EmSignal signal, EmData *data, EmDat
 			if (mem == NULL)
 				return ERR_INV_PTR;
 			mem[addr] = *data;
-			
 			return SUCCESS;
 		}
 
@@ -769,7 +783,7 @@ static EmErr _dev_mem_manager(CElem* celem, EmSignal signal, EmData *data, EmDat
 static EmErr _dev_mem_tf(CElem* celem) {
 	if (celem == NULL)
 		return ERR_INV_PTR;
-	
+
 	Port* reset;
 	EmErr err = celem->get_port(celem, TYPE_PORT_INPUT, ID_PORT_MEM_RESET, &reset);
 	if (err != SUCCESS)
@@ -781,7 +795,7 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		return err;
 	
 	if (reset_state == ENABLE) {
-		err = _dev_mem_manager(celem, SIGNAL_MEM_RESET, NULL, 0);
+		err = _dev_mem_manager(celem, SIGNAL_MEM_RESET, NULL, 0, TYPE_MEM_NODUMP, NULL);
 		if (err != SUCCESS)
 			return err;
 	}
@@ -817,7 +831,7 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		if (err != SUCCESS)
 			return err;
 		
-		err = _dev_mem_manager(celem, SIGNAL_MEM_WRITE, &data, addr);
+		err = _dev_mem_manager(celem, SIGNAL_MEM_WRITE, &data, addr, TYPE_MEM_NODUMP, NULL);
 		if (err != SUCCESS)
 			return err;
 	}
@@ -853,26 +867,55 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		return err;
 	
 	EmData data_a;
-	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_a, addr_a);
+	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_a, addr_a, TYPE_MEM_NODUMP, NULL);
 	if (err != SUCCESS)
 		return err;
 
 	EmData data_b;
-	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_b, addr_b);
+	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_b, addr_b, TYPE_MEM_NODUMP, NULL);
 	if (err != SUCCESS)
 		return err;
 	
-	err = dout_a->update(dout_a, data_a);
-	if (err != SUCCESS)
-		return err;
-	
-	err = dout_b->update(dout_b, data_b);
-	if (err != SUCCESS)
-		return err;
+	dout_a->state = data_a;
+	dout_b->state = data_b;
 
 	return SUCCESS;
 }
 
+static EmErr _dev_mem_propogate(CElem* celem) {
+	if (celem == NULL)
+		return ERR_INV_PTR;
+
+	Port* dout_a;
+	EmErr err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_A, &dout_a);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* dout_b;
+	err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_B, &dout_b);
+	if (err != SUCCESS)
+		return err;
+	
+	if (dout_a == NULL || dout_b == NULL)
+		return ERR_INV_PTR;
+
+	err = dout_a->update(dout_a, dout_a->state);
+	if (err != SUCCESS)
+		return err;
+
+	err = dout_b->update(dout_b, dout_b->state);
+	return err;
+
+	return SUCCESS;
+}
+
+static EmErr _dev_mem_dump(CElem* celem, EmData** ptr) {
+	if (celem == NULL || ptr == NULL)
+		return ERR_INV_PTR;
+
+	EmErr err = _dev_mem_manager(celem, 0, NULL, 0, TYPE_MEM_DUMP, ptr);
+	return err;
+}
 
 EmErr dev_new_memory(EmName name, CElem** ptr) {
 	if (ptr == NULL)
@@ -907,10 +950,12 @@ EmErr dev_new_memory(EmName name, CElem** ptr) {
 	if (err != SUCCESS)
 		return err;
 
-	_dev_mem_manager(celem, SIGNAL_MEM_INIT, NULL, 0);
+	_dev_mem_manager(celem, SIGNAL_MEM_INIT, NULL, 0, TYPE_MEM_NODUMP, NULL);
 	
 	celem->name = name;
 	celem->transition = _dev_mem_tf;
+	celem->propogate = _dev_mem_propogate;
+	celem->dump_memory = _dev_mem_dump;
 
 	*ptr = celem;
 
@@ -1045,7 +1090,7 @@ static EmErr _dev_alu_tf(CElem* celem) {
 EmErr dev_new_alu(EmName name, CElem** ptr) {
 
 	CElem* celem;
-	EmErr err = dev_new_celem(TYPE_CIRC_ELEM_SEQ, &celem);
+	EmErr err = dev_new_celem(TYPE_CIRC_ELEM_NSEQ, &celem);
 	if (err != SUCCESS)
 		return err;
 	
@@ -1083,4 +1128,116 @@ EmErr dev_new_alu(EmName name, CElem** ptr) {
 	*ptr = celem;
 	
 	return SUCCESS;
+}
+
+static EmErr _dev_adder_tf(CElem* celem) {
+	if (celem == NULL)
+		return ERR_INV_PTR;
+
+	Port* ina;
+	EmErr err = celem->get_port(celem, TYPE_PORT_INPUT, ID_PORT_ADDER_INA, &ina);
+	if (err != SUCCESS)
+		return err;
+
+	Port* inb;
+	err = celem->get_port(celem, TYPE_PORT_INPUT, ID_PORT_ADDER_INB, &inb);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* out;
+	err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_ADDER_OUT, &out);
+	if (err != SUCCESS)
+		return err;
+
+	Port* carry;
+	err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_ADDER_CARRY, &carry);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* zero;
+	err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_ADDER_ZERO, &zero);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* neg;
+	err = celem->get_port(celem, TYPE_PORT_OUTPUT, ID_PORT_ADDER_NEG, &neg);
+	if (err != SUCCESS)
+		return err;
+	
+	if (ina == NULL || inb == NULL || out == NULL || carry == NULL || zero == NULL || neg == NULL)
+		return ERR_INV_PTR;
+
+	EmState ina_state;
+	err = ina->inspect(ina, &ina_state);
+	if (err != SUCCESS)
+		return err;
+	
+	EmState inb_state;
+	err = inb->inspect(inb, &inb_state);
+	if (err != SUCCESS)
+		return err;
+	
+	EmData data_out = ina_state + inb_state;
+	EmState zero_out = (data_out == 0) ? ENABLE : DISABLE;
+	EmState neg_out = (data_out < 0) ? ENABLE : DISABLE;
+	EmState carry_out = (data_out > MAX_DATA) ? ENABLE : DISABLE;
+
+	err = out->update(out, data_out);
+	if (err != SUCCESS)
+		return err;
+	
+	err = zero->update(zero, zero_out);
+	if (err != SUCCESS)
+		return err;
+	
+	err = neg->update(neg, neg_out);
+	if (err != SUCCESS)
+		return err;
+	
+	err = carry->update(carry, carry_out);
+	if (err != SUCCESS)
+		return err;
+	
+	return SUCCESS;
+}
+
+EmErr dev_new_adder(EmName name, CElem** ptr) {
+	
+	CElem* adder;
+
+	EmErr err = dev_new_celem(TYPE_CIRC_ELEM_NSEQ, &adder);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_INPUT, ID_PORT_ADDER_INA, NAME_ADDER_INA, WIDTH_DATA);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_INPUT, ID_PORT_ADDER_INB, NAME_ADDER_INB, WIDTH_DATA);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_OUT, NAME_ADDER_OUT, WIDTH_DATA);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_CARRY, NAME_ADDER_CARRY, WIDTH_EN);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_ZERO, NAME_ADDER_ZERO, WIDTH_EN);
+	if (err != SUCCESS)
+		return err;
+	
+	err = adder->add_port(adder, TYPE_PORT_OUTPUT, ID_PORT_ADDER_NEG, NAME_ADDER_NEG, WIDTH_EN);
+	if (err != SUCCESS)
+		return err;
+	
+	adder->name = name;
+	adder->transition = _dev_adder_tf;
+
+	*ptr = adder;
+
+	return SUCCESS;
+
 }

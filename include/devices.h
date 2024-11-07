@@ -45,7 +45,9 @@ struct _circ_elem {
 	Port** output_ports;
 	EmSize num_output_ports;
 	
-	EmErr (*transition)(CElem*);
+	EmErr (*transition)(CElem*);	/* Transition the state of the circuit element. In case of NSEQ Elem, it intrinsically calls propogate */
+	EmErr (*propogate)(CElem*);	/* Propogate the signal to the output ports, only applicable for SEQ Elem*/
+	EmErr (*dump_memory)(CElem*, EmData**); /* Only for memory element */
 	EmErr (*add_port)(CElem*, EmType, EmId, EmName, EmSize);
 	EmErr (*get_port)(CElem*, EmType, EmId, Port**);
 	void (*destroy)(CElem*);
@@ -64,5 +66,6 @@ EmErr dev_new_register(EmName, CElem**);
 EmErr dev_new_memory(EmName, CElem**);
 EmErr dev_new_mux(EmName, EmSize, CElem**);	/* Mux requires number of control bits for definations */
 EmErr dev_new_alu(EmName, CElem**);
+EmErr dev_new_adder(EmName, CElem**);
 
 #endif
