@@ -71,9 +71,11 @@ void print_status(DP* dp) {
 	dp_print_cu(dp);
 	dp_print_register_a(dp);
 	dp_print_register_b(dp);
+	dp_print_alu(dp);
 	dp_print_stack_pointer(dp);
 	dp_print_mem_comp(dp);
 	dp_print_adder(dp);
+
 }
 
 void dump_memory(DP* dp) {
@@ -147,38 +149,130 @@ void print_buses(DP* dp) {
 	debug_print_bus(dp->bus_mux_alu_b);
 }
 
+void print_mux(CElem* mux) {
+	if (mux == NULL)
+		return;
+	
+	printf("\nMux: %p\n--------------------\n", mux);
+	
+	Port* in0;
+	EmErr err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INA, &in0);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* in1;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INB, &in1);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* out;
+	err = mux->get_port(mux, TYPE_PORT_OUTPUT, ID_PORT_MUX_2X1_OUT, &out);
+	if (err != SUCCESS)
+		return err;
+
+	Port* ctrl;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_CTR, &ctrl);
+	if (err != SUCCESS)
+		return err;
+	
+	printf("Input 0\n");
+	debug_print_port(in0);
+	printf("Input 1\n");
+	debug_print_port(in1);
+	printf("Control\n");
+	debug_print_port(ctrl);
+	printf("Output\n");
+	debug_print_port(out);
+}
+
+void print_mux2(CElem* mux) {
+	if (mux == NULL)
+		return;
+	
+	printf("\nMux: %p\n--------------------\n", mux);
+	
+	Port* in0;
+	EmErr err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INA, &in0);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* in1;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INB, &in1);
+	if (err != SUCCESS)
+		return err;
+	
+
+	Port* in2;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INC, &in2);
+	if (err != SUCCESS)
+		return err;
+	
+	Port* in3;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_IND, &in3);
+	if (err != SUCCESS)
+		return err;
+
+	Port* out;
+	err = mux->get_port(mux, TYPE_PORT_OUTPUT, ID_PORT_MUX_4X1_OUT, &out);
+	if (err != SUCCESS)
+		return err;
+
+	Port* ctrl;
+	err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_CTR, &ctrl);
+	if (err != SUCCESS)
+		return err;
+	
+	printf("Input 0\n");
+	debug_print_port(in0);
+	printf("Input 1\n");
+	debug_print_port(in1);
+	printf("Input 2\n");
+	debug_print_port(in2);
+	printf("Input 3\n");
+	debug_print_port(in3);
+	printf("Control\n");
+	debug_print_port(ctrl);
+	printf("Output\n");
+	debug_print_port(out);
+}
+
+
 int test_get_data_path() {
 	DP* dp;
 	EmErr err = dp_get_datapath(&dp);
 	if (err != SUCCESS)
 		return err;
 	
+	#define SIZE 4
 
-	EmData data[4] = {
-		0x00000A00,
-		0x00000B00,
-		0x00000C00,
-		0x00000D00
+	EmData data[SIZE] = {
+		0x0000050A,
+		0x00000100,
+		0x00000200,
+		0x00000004
 	};
 
-	err = dp->load(dp, data, 4);
+	err = dp->load(dp, data, SIZE);
 	if (err != SUCCESS)
 		return err;
 
-	print_status(dp);
-	err = dp->clock(dp);
+	err = dp->restart(dp);
 	if (err != SUCCESS)
 		return err;
-	print_status(dp);
-	err = dp->clock(dp);
-	if (err != SUCCESS)
-		return err;
-	print_status(dp);
-	err = dp->clock(dp);
-	if (err != SUCCESS)
-		return err;
+	
 	print_status(dp);
 
+	EmSize iter;
+	for (iter = 0; iter < SIZE; iter++) {
+		printf("**************************************************\n");
+		err = dp->clock(dp);
+		if (err != SUCCESS)
+			return err;
+
+		print_status(dp);
+	}
+
+	dump_memory(dp);
 	return SUCCESS;
 }
 

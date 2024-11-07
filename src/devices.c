@@ -780,6 +780,12 @@ static EmErr _dev_mem_manager(CElem* celem, EmSignal signal, EmData *data, EmDat
 	return ERR_MEM_IVS;
 }
 
+static EmBool _dev_valid_mem_addr(EmData addr) {
+	if ((addr >= 0) && (addr < SIZE_MEM))
+		return TRUE;
+	return FALSE;
+}
+
 static EmErr _dev_mem_tf(CElem* celem) {
 	if (celem == NULL)
 		return ERR_INV_PTR;
@@ -830,6 +836,10 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		err = waddr->inspect(waddr, &addr);
 		if (err != SUCCESS)
 			return err;
+
+		printf("************************************\n");
+		printf("Writing value %d to %d\n", data ,addr);
+		printf("************************************\n");
 		
 		err = _dev_mem_manager(celem, SIGNAL_MEM_WRITE, &data, addr, TYPE_MEM_NODUMP, NULL);
 		if (err != SUCCESS)
@@ -865,19 +875,35 @@ static EmErr _dev_mem_tf(CElem* celem) {
 	err = raddr_b->inspect(raddr_b, &addr_b);
 	if (err != SUCCESS)
 		return err;
-	
-	EmData data_a;
-	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_a, addr_a, TYPE_MEM_NODUMP, NULL);
-	if (err != SUCCESS)
-		return err;
 
-	EmData data_b;
-	err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_b, addr_b, TYPE_MEM_NODUMP, NULL);
-	if (err != SUCCESS)
-		return err;
+	printf("=================================================\n");
+	printf("Get memory %d\n", raddr_a->state);
+	printf("=================================================\n");
+	printf("Get memory %d\n", raddr_b->state);
+	printf("=================================================\n");
+
+
 	
-	dout_a->state = data_a;
-	dout_b->state = data_b;
+	if (_dev_valid_mem_addr(addr_a) == TRUE) {
+		EmData data_a;
+		err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_a, addr_a, TYPE_MEM_NODUMP, NULL);
+		if (err != SUCCESS)
+			return err;
+		
+		dout_a->state = data_a;
+	}
+
+
+	if (_dev_valid_mem_addr(addr_b) == TRUE) {
+		EmData data_b;
+		err = _dev_mem_manager(celem, SIGNAL_MEM_READ, &data_b, addr_b, TYPE_MEM_NODUMP, NULL);
+		if (err != SUCCESS)
+			return err;
+
+		err = dout_b->update(dout_b, data_b);
+		if (err != SUCCESS)
+			return err;
+	}
 
 	return SUCCESS;
 }
@@ -904,7 +930,8 @@ static EmErr _dev_mem_propogate(CElem* celem) {
 		return err;
 
 	err = dout_b->update(dout_b, dout_b->state);
-	return err;
+	if (err != SUCCESS)
+		return err;
 
 	return SUCCESS;
 }
@@ -1012,12 +1039,12 @@ static EmErr _dev_alu_tf(CElem* celem) {
 	if (err != SUCCESS)
 		return err;
 	
-	EmState ina_state;
+	EmData ina_state;
 	err = ina->inspect(ina, &ina_state);
 	if (err != SUCCESS)
 		return err;
 	
-	EmState inb_state;
+	EmData inb_state;
 	err = inb->inspect(inb, &inb_state);
 	if (err != SUCCESS)
 		return err;
@@ -1030,43 +1057,35 @@ static EmErr _dev_alu_tf(CElem* celem) {
 	switch (op_state) {
 		case ALU_OP_ADD:
 			data_out = ina_state + inb_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = (data_out < 0) ? ENABLE : DISABLE;
-			carry_out = (data_out > MAX_DATA) ? ENABLE : DISABLE;
 			break;
 		case ALU_OP_SUB:
-			data_out = ina_state - inb_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = (data_out < 0) ? ENABLE : DISABLE;
-			carry_out = (data_out > MAX_DATA) ? ENABLE : DISABLE;
+			data_out = inb_state - ina_state;
+			break;
+		case ALU_OP_SL:
+			data_out = inb_state << ina_state;
+			break;
+		case ALU_OP_SR:
+			data_out = inb_state >> ina_state;
 			break;
 		case ALU_OP_AND:
 			data_out = ina_state & inb_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = DISABLE;
-			carry_out = DISABLE;
 			break;
 		case ALU_OP_OR:
 			data_out = ina_state | inb_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = DISABLE;
-			carry_out = DISABLE;
 			break;
 		case ALU_OP_XOR:
 			data_out = ina_state ^ inb_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = DISABLE;
-			carry_out = DISABLE;
 			break;
 		case ALU_OP_NOT:
 			data_out = ~ina_state;
-			zero_out = (data_out == 0) ? ENABLE : DISABLE;
-			neg_out = DISABLE;
-			carry_out = DISABLE;
 			break;
 		default:
 			return ERR_ALU_OVF;
 	}
+
+	zero_out = (data_out == 0) ? ENABLE : DISABLE;
+	neg_out = (data_out < 0) ? ENABLE : DISABLE;
+	carry_out = (data_out > MAX_DATA) ? ENABLE : DISABLE;
 
 	err = out->update(out, data_out);
 	if (err != SUCCESS)
@@ -1177,7 +1196,7 @@ static EmErr _dev_adder_tf(CElem* celem) {
 	if (err != SUCCESS)
 		return err;
 	
-	EmData data_out = ina_state + inb_state;
+	EmData data_out = (EmInt)ina_state + (EmInt)inb_state;
 	EmState zero_out = (data_out == 0) ? ENABLE : DISABLE;
 	EmState neg_out = (data_out < 0) ? ENABLE : DISABLE;
 	EmState carry_out = (data_out > MAX_DATA) ? ENABLE : DISABLE;

@@ -131,7 +131,7 @@ static EmErr _dp_control_unit_ldl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = w_en_b->update(w_en_b, 0);
+    err = w_en_b->update(w_en_b, 1);
     if (err != SUCCESS)
         return err;
     
@@ -159,7 +159,7 @@ static EmErr _dp_control_unit_ldl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
     
-    err = mux_a_in->update(mux_a_in, 2);  
+    err = mux_a_in->update(mux_a_in, 1);  
     if (err != SUCCESS)
         return err;
     
@@ -191,7 +191,7 @@ static EmErr _dp_control_unit_stl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 0); 
+    err = w_en_a->update(w_en_a, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -199,7 +199,7 @@ static EmErr _dp_control_unit_stl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0); 
+    err = pc_w_en->update(pc_w_en, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -207,7 +207,7 @@ static EmErr _dp_control_unit_stl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_a->update(mux_alu_a, 1); 
+    err = mux_alu_a->update(mux_alu_a, 2); 
     if (err != SUCCESS)
         return err;
 
@@ -215,11 +215,15 @@ static EmErr _dp_control_unit_stl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2); 
+    err = mux_a_in->update(mux_a_in, 3); 
     if (err != SUCCESS)
         return err;
 
     err = mux_pc_in->update(mux_pc_in, 0); 
+    if (err != SUCCESS)
+        return err;
+    
+    err = mux_mem_in->update(mux_mem_in, 1);
     if (err != SUCCESS)
         return err;
 
@@ -255,7 +259,7 @@ static EmErr _dp_control_unit_ldnl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0);
+    err = pc_w_en->update(pc_w_en, 1);
     if (err != SUCCESS)
         return err;
 
@@ -271,7 +275,7 @@ static EmErr _dp_control_unit_ldnl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2);
+    err = mux_a_in->update(mux_a_in, 1);
     if (err != SUCCESS)
         return err;
 
@@ -359,7 +363,7 @@ static EmErr _dp_control_unit_add(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 1);  
+    err = w_en_a->update(w_en_a, 0);  
     if (err != SUCCESS)
         return err;
 
@@ -383,7 +387,7 @@ static EmErr _dp_control_unit_add(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2);  
+    err = mux_a_in->update(mux_a_in, 0);  
     if (err != SUCCESS)
         return err;
 
@@ -435,7 +439,7 @@ static EmErr _dp_control_unit_sub(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0); 
+    err = mux_alu_b->update(mux_alu_b, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -491,7 +495,7 @@ static EmErr _dp_control_unit_shl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0); 
+    err = mux_alu_b->update(mux_alu_b, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -547,7 +551,7 @@ static EmErr _dp_control_unit_shr(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0);  
+    err = mux_alu_b->update(mux_alu_b, 1);  
     if (err != SUCCESS)
         return err;
 
@@ -599,7 +603,7 @@ static EmErr _dp_control_unit_adj(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_a->update(mux_alu_a, 1); 
+    err = mux_alu_a->update(mux_alu_a, 2); 
     if (err != SUCCESS)
         return err;
 
@@ -607,15 +611,11 @@ static EmErr _dp_control_unit_adj(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2); 
-    if (err != SUCCESS)
-        return err;
-
     err = mux_pc_in->update(mux_pc_in, 0);
     if (err != SUCCESS)
         return err;
 
-    err = alu_sel->update(alu_sel, 4); 
+    err = alu_sel->update(alu_sel, 0); 
     if (err != SUCCESS)
         return err;
 
@@ -639,7 +639,7 @@ static EmErr _dp_control_unit_a2sp(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 0); 
+    err = w_en_a->update(w_en_a, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -647,7 +647,7 @@ static EmErr _dp_control_unit_a2sp(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0); 
+    err = pc_w_en->update(pc_w_en, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -655,7 +655,7 @@ static EmErr _dp_control_unit_a2sp(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_a->update(mux_alu_a, 0); 
+    err = mux_alu_a->update(mux_alu_a, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -663,7 +663,7 @@ static EmErr _dp_control_unit_a2sp(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2); 
+    err = mux_a_in->update(mux_a_in, 3); 
     if (err != SUCCESS)
         return err;
 
@@ -691,7 +691,7 @@ static EmErr _dp_control_unit_sp2a(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = w_en_b->update(w_en_b, 0);  
+    err = w_en_b->update(w_en_b, 1);  
     if (err != SUCCESS)
         return err;
 
@@ -703,7 +703,7 @@ static EmErr _dp_control_unit_sp2a(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0);  
+    err = pc_w_en->update(pc_w_en, 1);
     if (err != SUCCESS)
         return err;
 
@@ -711,7 +711,7 @@ static EmErr _dp_control_unit_sp2a(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_a->update(mux_alu_a, 0);  
+    err = mux_alu_a->update(mux_alu_a, 2);  
     if (err != SUCCESS)
         return err;
 
@@ -719,7 +719,7 @@ static EmErr _dp_control_unit_sp2a(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 3);  
+    err = mux_a_in->update(mux_a_in, 2);  
     if (err != SUCCESS)
         return err;
 
@@ -747,19 +747,19 @@ static EmErr _dp_control_unit_call(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = w_en_b->update(w_en_b, 0);
+    err = w_en_b->update(w_en_b, 1);
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 0);
+    err = w_en_a->update(w_en_a, 1);
     if (err != SUCCESS)
         return err;
 
-    err = w_en_mem->update(w_en_mem, 1); 
+    err = w_en_mem->update(w_en_mem, 0); 
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0); 
+    err = pc_w_en->update(pc_w_en, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -767,7 +767,7 @@ static EmErr _dp_control_unit_call(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_a->update(mux_alu_a, 1); 
+    err = mux_alu_a->update(mux_alu_a, 0); 
     if (err != SUCCESS)
         return err;
 
@@ -775,15 +775,15 @@ static EmErr _dp_control_unit_call(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 2); 
+    err = mux_a_in->update(mux_a_in, 0); 
     if (err != SUCCESS)
         return err;
 
-    err = mux_pc_in->update(mux_pc_in, 0);
+    err = mux_pc_in->update(mux_pc_in, 1);
     if (err != SUCCESS)
         return err;
 
-    err = alu_sel->update(alu_sel, 5); 
+    err = alu_sel->update(alu_sel, 0); 
     if (err != SUCCESS)
         return err;
 
@@ -795,11 +795,8 @@ static EmErr _dp_control_unit_return(Port* mux_br, Port* w_en_sp, Port* w_en_b, 
         return ERR_INV_PTR;
 
     /* Update the ports */
-    EmErr err = mux_br->update(mux_br, 1);  
-    if (err != SUCCESS)
-        return err;
 
-    err = w_en_sp->update(w_en_sp, 0);  
+    EmErr err = w_en_sp->update(w_en_sp, 0);  
     if (err != SUCCESS)
         return err;
 
@@ -807,7 +804,7 @@ static EmErr _dp_control_unit_return(Port* mux_br, Port* w_en_sp, Port* w_en_b, 
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 0);  
+    err = w_en_a->update(w_en_a, 1);  
     if (err != SUCCESS)
         return err;
 
@@ -835,11 +832,11 @@ static EmErr _dp_control_unit_return(Port* mux_br, Port* w_en_sp, Port* w_en_b, 
     if (err != SUCCESS)
         return err;
 
-    err = mux_pc_in->update(mux_pc_in, 0);  
+    err = mux_pc_in->update(mux_pc_in, 1);  
     if (err != SUCCESS)
         return err;
 
-    err = alu_sel->update(alu_sel, 4);  
+    err = alu_sel->update(alu_sel, 0);  
     if (err != SUCCESS)
         return err;
 
@@ -852,6 +849,10 @@ static EmErr _dp_control_unit_brz(Port* mux_br, Port* mux_br_fine, Port* w_en_sp
 
     /* Update the ports */
     EmErr err = mux_br->update(mux_br, 1);
+    if (err != SUCCESS)
+        return err;
+    
+    err = mux_br_fine->update(mux_br_fine, 0);
     if (err != SUCCESS)
         return err;
 
@@ -883,15 +884,11 @@ static EmErr _dp_control_unit_brz(Port* mux_br, Port* mux_br_fine, Port* w_en_sp
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0);
+    err = mux_alu_b->update(mux_alu_b, 2);
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 1);
-    if (err != SUCCESS)
-        return err;
-
-    err = mux_pc_in->update(mux_pc_in, 1);
+    err = mux_pc_in->update(mux_pc_in, 0);
     if (err != SUCCESS)
         return err;
 
@@ -908,6 +905,10 @@ static EmErr _dp_control_unit_brlz(Port* mux_br, Port* mux_br_fine, Port* w_en_s
 
     /* Update the ports */
     EmErr err = mux_br->update(mux_br, 1); 
+    if (err != SUCCESS)
+        return err;
+    
+    err = mux_br_fine->update(mux_br_fine, 1);
     if (err != SUCCESS)
         return err;
 
@@ -939,19 +940,15 @@ static EmErr _dp_control_unit_brlz(Port* mux_br, Port* mux_br_fine, Port* w_en_s
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0); 
+    err = mux_alu_b->update(mux_alu_b, 2); 
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 1); 
+    err = mux_pc_in->update(mux_pc_in, 0); 
     if (err != SUCCESS)
         return err;
 
-    err = mux_pc_in->update(mux_pc_in, 1); 
-    if (err != SUCCESS)
-        return err;
-
-    err = alu_sel->update(alu_sel, 1); 
+    err = alu_sel->update(alu_sel, 0); 
     if (err != SUCCESS)
         return err;
 
@@ -1099,10 +1096,12 @@ static EmErr _dp_control_unit_tf(CElem* cu) {
     if (err != SUCCESS)
         return err;
 
-    EmState opcode = instr_val & 0x000F;
-    printf("The opcode value is %d\n", opcode);
-    EmState imm_val = (instr_val & 0xFFF0)>>8;
-    printf("The imm value is %d\n", imm_val);
+    EmState opcode = instr_val & 0x00FF;
+    EmState imm_val = (instr_val & 0xFFFFFFF0)>>8;
+    /* Handle negative imm val case */
+    if (imm_val & (1<<23)) {
+        imm_val = imm_val | 0xFFFF0000;
+    }
     
     switch (opcode) {
         case INSTR_LDC:
@@ -1648,11 +1647,6 @@ static EmErr _dp_connect_alu(DP* dp) {
     if (err != SUCCESS)
         return err;
     
-    Port* sl_mem_data;
-    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_INPUT, ID_PORT_MEM_DIN, &sl_mem_data);
-    if (err != SUCCESS)
-        return err;
-    
     Port* sl_sp;
     err = dp->regB->get_port(dp->sp, TYPE_PORT_INPUT, ID_PORT_REG_DIN, &sl_sp);
     if (err != SUCCESS)
@@ -1687,10 +1681,7 @@ static EmErr _dp_connect_alu(DP* dp) {
     err = bus->connect(bus, sl_mux_a_in);
     if (err != SUCCESS)
         return err;
-    
-    err = bus->connect(bus, sl_mem_data);
-    if (err != SUCCESS)
-        return err;
+
     
     err = bus->connect(bus, sl_sp);
     if (err != SUCCESS)
@@ -1960,7 +1951,7 @@ static EmErr _dp_connect_mux_br_fine(DP* dp) {
 
     /* Gather Slave Ports */
     Port* sl_mux_br;
-    err = dp->mux_br->get_port(dp->mux_br, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INA, &sl_mux_br);
+    err = dp->mux_br->get_port(dp->mux_br, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INB, &sl_mux_br);
     if (err != SUCCESS)
         return err;
     
@@ -2584,10 +2575,10 @@ static EmErr _dp_load(DP* dp, EmData* data, EmSize size) {
             return err;
     }
 
-    err = dp->mem_code->propogate(dp->mem_code);
-    if (err != SUCCESS)
-        return err;
+    mem_wen->state = DISABLE;
 
+    printf("ALL DONE\n");
+    
     return SUCCESS;
 }
 
@@ -2598,6 +2589,7 @@ static EmErr _dp_restart(DP* dp) {
     /* Write zero at each register */
     if (dp->regA == NULL || dp->regB == NULL || dp->sp == NULL || dp->pc == NULL)
         return ERR_INV_PTR;
+
     
     Port* regA_wen;
     EmErr err = dp->regA->get_port(dp->regA, TYPE_PORT_INPUT, ID_PORT_REG_WEN, &regA_wen);
@@ -2638,54 +2630,65 @@ static EmErr _dp_restart(DP* dp) {
     err = dp->pc->get_port(dp->pc, TYPE_PORT_INPUT, ID_PORT_REG_DIN, &pc_din);
     if (err != SUCCESS)
         return err;
+
+    Port* mem_wen;
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_WEN, &mem_wen);
+    if (err != SUCCESS)
+        return err;
     
-    regA_din->state = 0;
-    regB_din->state = 0;
-    sp_din->state = 0;
-    pc_din->state = 0;
     
     regA_wen->state = ENABLE;
     regB_wen->state = ENABLE;
     sp_wen->state = ENABLE;
     pc_wen->state = ENABLE;
 
+    regA_din->state = 0;
     err = dp->regA->transition(dp->regA);
     if (err != SUCCESS)
         return err;
-    
+
+    err = dp->regA->propogate(dp->regA);
+    if (err != SUCCESS)
+        return err;
+
+    regB_din->state = 0;    
     err = dp->regB->transition(dp->regB);
     if (err != SUCCESS)
         return err;
 
-    err = dp->sp->transition(dp->sp);
+    err = dp->regB->propogate(dp->regB);
     if (err != SUCCESS)
         return err;
     
+    sp_din->state = 0;
+    err = dp->sp->transition(dp->sp);
+    if (err != SUCCESS)
+        return err;
+
+    err = dp->sp->propogate(dp->sp);
+    if (err != SUCCESS)
+        return err;
+    
+    pc_din->state = 0;
     err = dp->pc->transition(dp->pc);
     if (err != SUCCESS)
         return err;
 
-    regA_wen->state = ENABLE;
-    regB_wen->state = ENABLE;
-    sp_wen->state = ENABLE;
-    pc_wen->state = ENABLE;
-    
-    /* Reset the Memory */
-    if (dp->mem_data == NULL)
-        return ERR_INV_PTR;
-    
-    Port* mem_rst;
-    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_INPUT, ID_PORT_MEM_RESET, &mem_rst);
+    err = dp->pc->propogate(dp->pc);
     if (err != SUCCESS)
         return err;
-    
-    mem_rst->state = ENABLE;
 
-    err = dp->mem_data->transition(dp->mem_data);
+    regA_wen->state = DISABLE;
+    regB_wen->state = DISABLE;
+    sp_wen->state = DISABLE;
+    pc_wen->state = DISABLE;
+    
+    err = dp->mem_code->transition(dp->mem_code);
     if (err != SUCCESS)
         return err;
-    
-    mem_rst->state = DISABLE;
+    dp->mem_code->propogate(dp->mem_code);
+    if (err != SUCCESS)
+        return err;
 
     return SUCCESS;
 }
@@ -2745,8 +2748,7 @@ static EmErr _dp_clock(DP* dp) {
     err = dp->pc->transition(dp->pc);
     if (err != SUCCESS)
         return err;
-
-    
+        
     /* Propogate the signals now */
     err = dp->regA->propogate(dp->regA);
     if (err != SUCCESS)
@@ -3260,7 +3262,7 @@ void dp_print_mem_comp(DP* dp) {
     
     if (dp->mem_code == NULL)
         return ERR_INV_PTR;
-    
+
     Port* mem_rst;
     EmErr err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_RESET, &mem_rst);
     if (err != SUCCESS)
@@ -3339,4 +3341,51 @@ void dp_print_adder(DP* dp) {
     printf("Adder Input A: %d\n", adder_in_a->state);
     printf("Adder Input B: %d\n", adder_in_b->state);
     printf("Adder Output: %d\n", adder_out->state);
+}
+
+void dp_print_alu(DP* dp) {
+
+    if (dp == NULL)
+        return ERR_INV_PTR;
+    
+    if (dp->alu == NULL)
+        return ERR_INV_PTR;
+    
+    Port* alu_a;
+    EmErr err = dp->alu->get_port(dp->alu, TYPE_PORT_INPUT, ID_PORT_ALU_INA, &alu_a);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* alu_b;
+    err = dp->alu->get_port(dp->alu, TYPE_PORT_INPUT, ID_PORT_ALU_INB, &alu_b);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* alu_sel;
+    err = dp->alu->get_port(dp->alu, TYPE_PORT_INPUT, ID_PORT_ALU_OP, &alu_sel);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* alu_out;
+    err = dp->alu->get_port(dp->alu, TYPE_PORT_OUTPUT, ID_PORT_ALU_OUT, &alu_out);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* alu_z;
+    err = dp->alu->get_port(dp->alu, TYPE_PORT_OUTPUT, ID_PORT_ALU_ZERO, &alu_z);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* alu_n;
+    err = dp->alu->get_port(dp->alu, TYPE_PORT_OUTPUT, ID_PORT_ALU_NEG, &alu_n);
+    if (err != SUCCESS)
+        return err;
+    
+    printf("\nArithmetic Logic Unit\n------------------------\n");
+    printf("ALU Input A: %d\n", alu_a->state);
+    printf("ALU Input B: %d\n", alu_b->state);
+    printf("ALU Selector: %d\n", alu_sel->state);
+    printf("ALU Output: %d\n", alu_out->state);
+    printf("ALU Zero: %d\n", alu_z->state);
+    printf("ALU Negative: %d\n", alu_n->state);
 }

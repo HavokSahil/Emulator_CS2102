@@ -64,5 +64,5 @@ void dp_print_register_b(DP*);
 void dp_print_program_counter(DP*);
 void dp_print_mem_comp(DP*);
 void dp_print_adder(DP*);
-
+void dp_print_alu(DP*);
 #endif

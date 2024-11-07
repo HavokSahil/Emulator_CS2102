@@ -276,11 +276,11 @@ stnl       1          0005
 typedef unsigned char EmType;
 typedef uint64_t EmSize;
 typedef unsigned char EmBool;
-typedef uint64_t EmInt;
+typedef uint32_t EmInt;
 typedef uint8_t EmByte;
 typedef uint8_t EmErr;
-typedef uint32_t EmState;
-typedef uint32_t EmData;
+typedef int32_t EmState;
+typedef int32_t EmData;
 typedef char* EmString;
 typedef char EmChar;
 typedef uint32_t EmName;
