@@ -836,10 +836,6 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		err = waddr->inspect(waddr, &addr);
 		if (err != SUCCESS)
 			return err;
-
-		printf("************************************\n");
-		printf("Writing value %d to %d\n", data ,addr);
-		printf("************************************\n");
 		
 		err = _dev_mem_manager(celem, SIGNAL_MEM_WRITE, &data, addr, TYPE_MEM_NODUMP, NULL);
 		if (err != SUCCESS)
@@ -875,14 +871,6 @@ static EmErr _dev_mem_tf(CElem* celem) {
 	err = raddr_b->inspect(raddr_b, &addr_b);
 	if (err != SUCCESS)
 		return err;
-
-	printf("=================================================\n");
-	printf("Get memory %d\n", raddr_a->state);
-	printf("=================================================\n");
-	printf("Get memory %d\n", raddr_b->state);
-	printf("=================================================\n");
-
-
 	
 	if (_dev_valid_mem_addr(addr_a) == TRUE) {
 		EmData data_a;

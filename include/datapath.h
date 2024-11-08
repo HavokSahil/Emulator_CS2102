@@ -48,6 +48,7 @@ struct _dp_struct {
     /* Interface Options */
     EmErr (*init)(struct _dp_struct*);
     EmErr (*load)(struct _dp_struct*, EmData*, EmSize);
+    EmErr (*load_data)(struct _dp_struct*, EmData*, EmSize);
     EmErr (*reset)(struct _dp_struct*);
     EmErr (*restart)(struct _dp_struct*);
     EmErr (*inspect)(struct _dp_struct*, EmName, EmType, EmId, EmState*);
@@ -57,6 +58,8 @@ struct _dp_struct {
 
 typedef struct _dp_struct DP;
 
+EmErr dp_get_datapath(DP** ptr);
+
 void dp_print_cu(DP*);
 void dp_print_stack_pointer(DP*);
 void dp_print_register_a(DP*);
@@ -65,4 +68,5 @@ void dp_print_program_counter(DP*);
 void dp_print_mem_comp(DP*);
 void dp_print_adder(DP*);
 void dp_print_alu(DP*);
+
 #endif

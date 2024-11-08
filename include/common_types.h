@@ -14,6 +14,8 @@
 #define ENABLE	1
 #define DISABLE 0
 
+#define STATUS_PROG_HALT 0xC0
+
 #define TYPE_CIRC_ELEM_SEQ 	0x00
 #define TYPE_CIRC_ELEM_NSEQ 0x01
 

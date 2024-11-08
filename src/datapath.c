@@ -363,7 +363,7 @@ static EmErr _dp_control_unit_add(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = w_en_a->update(w_en_a, 0);  
+    err = w_en_a->update(w_en_a, 1);  
     if (err != SUCCESS)
         return err;
 
@@ -383,11 +383,11 @@ static EmErr _dp_control_unit_add(Port* mux_br, Port* w_en_sp, Port* w_en_b, Por
     if (err != SUCCESS)
         return err;
 
-    err = mux_alu_b->update(mux_alu_b, 0);  
+    err = mux_alu_b->update(mux_alu_b, 1);  
     if (err != SUCCESS)
         return err;
 
-    err = mux_a_in->update(mux_a_in, 0);  
+    err = mux_a_in->update(mux_a_in, 2);  
     if (err != SUCCESS)
         return err;
 
@@ -1158,6 +1158,9 @@ static EmErr _dp_control_unit_tf(CElem* cu) {
         case INSTR_BR:
             return _dp_control_unit_br(mux_br, w_en_sp, w_en_b, w_en_a, w_en_mem, w_en_pc, imm, mux_alu_a, mux_alu_b, mux_a_in, mux_pc_in, alu_sel, imm_val);
         
+        case INSTR_HALT:
+            return STATUS_PROG_HALT;
+
         default:
             return ERR_INV_INSTR; 
     }
@@ -2527,6 +2530,7 @@ static EmErr _dp_load_constants(DP* dp) {
 }
 
 static EmErr _dp_load(DP* dp, EmData* data, EmSize size) {
+
     if (dp == NULL || data == NULL)
         return ERR_INV_PTR;
 
@@ -2576,9 +2580,61 @@ static EmErr _dp_load(DP* dp, EmData* data, EmSize size) {
     }
 
     mem_wen->state = DISABLE;
+    printf("Program Loaded to Memory...\n");
+    return SUCCESS;
+}
 
-    printf("ALL DONE\n");
+static EmErr _dp_load_data(DP* dp, EmData* data, EmSize size) {
+    if (dp == NULL || data == NULL)
+        return ERR_INV_PTR;
+
+    if (dp->mem_code == NULL)
+        return ERR_INV_PTR;
     
+    EmInt iter;
+    Port* mem_rst;
+    EmErr err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_RESET, &mem_rst);
+    if (err != SUCCESS)
+        return err;
+
+    mem_rst->state = ENABLE;
+    err = dp->mem_code->transition(dp->mem_code);
+    if (err != SUCCESS)
+        return err;
+
+    mem_rst->state = DISABLE;
+
+    Port* mem_wen;
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_WEN, &mem_wen);
+    if (err != SUCCESS)
+        return err;
+    
+    mem_wen->state = ENABLE;
+
+    Port* mem_add;
+    Port* mem_dat;
+
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_WADDR, &mem_add);
+        if (err != SUCCESS)
+            return err;
+        
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_DIN, &mem_dat);
+    if (err != SUCCESS)
+        return err;
+
+    for (iter = 0; iter < size; iter++) {
+        EmData d = data[iter];
+        
+        mem_add->state = iter + MEM_BEG_DATA_SEG;
+        mem_dat->state = d;
+
+        err = dp->mem_code->transition(dp->mem_code);
+        if (err != SUCCESS)
+            return err;
+    }
+
+    mem_wen->state = DISABLE;
+    printf("Data Loaded to Memory...\n");
     return SUCCESS;
 }
 
@@ -2730,10 +2786,18 @@ static EmErr _dp_clock(DP* dp) {
     
     if (dp->mem_code == NULL || dp->mem_data == NULL)
         return ERR_INV_PTR;
+    
 
+    Port* instr;
+    EmErr err = dp->cu->get_port(dp->cu, TYPE_PORT_INPUT, ID_PORT_CU_INSTR, &instr);
+    if (err != SUCCESS)
+        return err;
+    
+    if ((instr->state) & 0xFF == INSTR_HALT)
+        return STATUS_PROG_HALT;
     
     /* Gather all the SEQ Elems */
-    EmErr err = dp->regA->transition(dp->regA);
+    err = dp->regA->transition(dp->regA);
     if (err != SUCCESS)
         return err;
     
@@ -3003,6 +3067,7 @@ EmErr dp_get_datapath(DP** ptr) {
     dp->pc_adder = NULL;
 
     dp->load = _dp_load;
+    dp->load_data = _dp_load_data;
     dp->reset = _dp_reset;
     dp->restart = _dp_restart;
     dp->clock = _dp_clock;
