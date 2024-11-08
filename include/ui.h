@@ -23,6 +23,10 @@
 #define UI_COLOR_PAIR_6 6
 #define UI_COLOR_PAIR_7 7
 #define UI_COLOR_PAIR_8 8
+#define UI_COLOR_PAIR_9 9
+#define UI_COLOR_PAIR_10 10
+#define UI_COLOR_PAIR_11 11
+
 
 #define UI_COLOR_BLACK 0
 #define UI_COLOR_RED 1

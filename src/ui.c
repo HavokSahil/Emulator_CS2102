@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <panel.h>
 
 void init_ncurses();
 void destroy_ncurses();
@@ -14,6 +15,14 @@ void draw_register(WINDOW* window, EmData value, EmString name);
 void draw_code(WINDOW* window, EmSize* size);
 void init_draw_code(WINDOW* window, EmSize* size, EmData* code);
 void init_draw_footer(WINDOW* window);
+void init_draw_control(WINDOW* window);
+void draw_control(WINDOW* window);
+void restart();
+void dump_memory();
+void init_draw_memory(WINDOW* window);
+void draw_memory(WINDOW* window);
+void init_draw_alu(WINDOW* window);
+void draw_alu(WINDOW* window);
 
 #define STATUS_HALT 0
 #define STATUS_RUNNING 1
@@ -29,6 +38,9 @@ EmData val_regB;
 EmData val_pc;
 EmData val_sp;
 EmState state = STATUS_RUNNING;
+EmData cu_elem[BUFFER_SIZE_CU_CELEM];
+EmData mem_elem[BUFFER_SIZE_MEM_CELEM];
+EmData alu_elem[4];
 
 
 int main(int argc, char *argv[]) {
@@ -52,7 +64,7 @@ int main(int argc, char *argv[]) {
     int gap_x = 5;
     int gap_y = 2;
 
-    int comp_x = width - (comp_width*2 + 2*gap_x), comp_y = gap_y;
+    int comp_x = width - (comp_width*2 + 2*gap_x), comp_y = gap_y + 2;
 
     int code_win_height = height - 18, code_win_width = 50;
     int code_win_x = gap_x, code_win_y = 12 + gap_y;
@@ -64,6 +76,9 @@ int main(int argc, char *argv[]) {
     WINDOW* code_window = newwin(code_win_height, code_win_width, code_win_y, code_win_x);
     WINDOW* win_filename = newwin(5, 40, height - 10, 6);
     WINDOW* footer = newwin(2, 80, height - 2, width-80);
+    WINDOW* control = newwin(comp_height*2 + 2, comp_width*2 + gap_x, comp_y + 2*comp_height + 2*gap_y, comp_x);
+    WINDOW* alu = newwin(comp_height, comp_width, comp_y + comp_height + gap_y, comp_x - 40);
+    WINDOW* memory = newwin(comp_height, comp_width, comp_y, comp_x - 40);
 
     EmErr err = get_api(&api);
     if (err != SUCCESS) {
@@ -82,6 +97,9 @@ int main(int argc, char *argv[]) {
     init_draw_register(win_sp, "Stack Pointer", "Connected to the memory input");
     init_draw_code(code_window, &data, &data);
     init_draw_footer(footer);
+    init_draw_control(control);
+    init_draw_memory(memory);
+    init_draw_alu(alu);
 
     timeout(100);
 
@@ -91,6 +109,10 @@ int main(int argc, char *argv[]) {
         draw_register(win_pc, val_pc, "Program Counter");
         draw_register(win_sp, val_sp, "Stack Pointer");
         draw_code(code_window, &data);
+        init_draw_control(control);
+        draw_memory(memory);
+        draw_alu(alu);
+
         handle_input(win_main, win_filename);
     }
 
@@ -98,6 +120,9 @@ int main(int argc, char *argv[]) {
     return EXIT_SUCCESS;
 }
 
+/**
+* Initialise the ncurses library
+******************************************* */
 void init_ncurses() {
     initscr();
     cbreak();
@@ -109,16 +134,24 @@ void init_ncurses() {
         start_color();
         init_pair(UI_COLOR_PAIR_1, COLOR_RED, COLOR_BLACK);
         init_pair(UI_COLOR_PAIR_2, COLOR_GREEN, COLOR_BLACK);
-        init_pair(UI_COLOR_PAIR_3, COLOR_WHITE, COLOR_BLUE);
         init_pair(UI_COLOR_PAIR_4, COLOR_CYAN, COLOR_BLACK);
         init_pair(UI_COLOR_PAIR_5, COLOR_MAGENTA, COLOR_BLACK);
         init_pair(UI_COLOR_PAIR_6, COLOR_BLACK, COLOR_WHITE);
+        init_pair(UI_COLOR_PAIR_7, COLOR_WHITE, COLOR_BLUE);
+        init_pair(UI_COLOR_PAIR_8, COLOR_WHITE, COLOR_RED);
+        init_pair(UI_COLOR_PAIR_9, COLOR_WHITE, COLOR_GREEN);
+        init_pair(UI_COLOR_PAIR_10, COLOR_WHITE, COLOR_CYAN);
+        init_pair(UI_COLOR_PAIR_11, COLOR_WHITE, COLOR_MAGENTA);
     }
 }
 
 void destroy_ncurses() {
     endwin();
 }
+
+/**
+ * Drawing Functions for Components
+ ****************************************/
 
 void init_draw_main(WINDOW* win_main) {
     wclear(win_main);
@@ -154,7 +187,7 @@ void init_draw_main(WINDOW* win_main) {
     snprintf(buf, sizeof(buf), " (_\")(\")(_)(__)    (__)_)  ");
     mvwprintw(win_main, 8, 2, buf);
     wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_4));
-    snprintf(buf, sizeof(buf), "LDS Emulator");
+    snprintf(buf, sizeof(buf), "LSD Emulator");
     mvwprintw(win_main, 10, 4, buf);
     wattroff(win_main, A_BOLD);
 
@@ -166,7 +199,9 @@ void init_draw_register(WINDOW* window, EmString name, EmString desc) {
 
     wattron(window, COLOR_PAIR(UI_COLOR_PAIR_2));
     wattron(window, A_BOLD);
-    wborder(window, '|', '|', '_', '$', '*', '*', '*', '*');
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_8));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_8));
     wattron(window, A_UNDERLINE);
     mvwprintw(window, 2, 2, name);
     wattroff(window, A_UNDERLINE);
@@ -181,14 +216,14 @@ void init_draw_register(WINDOW* window, EmString name, EmString desc) {
 
 void init_draw_code(WINDOW* window, EmSize* size, EmData* code) {
     wclear(window);
-    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_2));
     wattron(window, A_BOLD);
-    wborder(window, '|', '|', '_', '$', '.', '.', '.', '.');
-    wattron(window, A_UNDERLINE);
-    mvwprintw(window, 2, 2, "Code");
-    wattroff(window, A_UNDERLINE);
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_10));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_10));
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_5));
+    mvwprintw(window, 2, 2, "CODE SECTION");
     wattroff(window, A_BOLD);
-    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_2));
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_5));
 
     wrefresh(window);
 }
@@ -220,18 +255,15 @@ void draw_code(WINDOW* window, EmSize* size) {
 
         wattroff(window, A_UNDERLINE);
         for (iter = 0; iter < CODE_BUF_SIZE/4; iter++) {
-            wattron(window, COLOR_PAIR(UI_COLOR_PAIR_1));
             mvwprintw(window, 5 + iter, 12, "0x%08x", iter + index);
-            wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_1));
             wattron(window, COLOR_PAIR(UI_COLOR_PAIR_4));
             mvwprintw(window, 5 + iter, 26, "0x%08x", buffer[iter + index]);
             wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_4));
-
         }
 
         wattron(window, WA_ITALIC);
         wattron(window, WA_BOLD);
-        mvwprintw(window, 2, 12, filename);
+        mvwprintw(window, 2, 20, filename);
         wattroff(window, WA_BOLD);
         wattroff(window, WA_ITALIC);
         wrefresh(window);
@@ -244,6 +276,99 @@ void draw_register(WINDOW* window, EmData value, EmString name) {
     wattron(window, WA_BOLD);
     mvwprintw(window, 3, 20, "0x%08x", value);
     wattroff(window, WA_BOLD);
+
+    wrefresh(window);
+}
+
+void init_draw_control(WINDOW* window) {
+
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_9));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_9));
+    wattron(window, A_BOLD);
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_6));    
+    mvwprintw(window, 2, 2, "\t%-*s %-*s", 38, "Control Unit", 26, "Status");
+    wattroff(window, A_BOLD);
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_6));
+
+    mvwprintw(window, 3, 2, "\t%-*s %-*d", 38, "ALU SEL", 26, cu_elem[INDEX_PORT_CU_ALU_SEL]);
+    mvwprintw(window, 4, 2, "\t%-*s %-*d", 38, "IMM VAL", 26, cu_elem[INDEX_PORT_CU_IMM]);
+    mvwprintw(window, 5, 2, "\t%-*s %-*d", 38, "MUX A IN", 26, cu_elem[INDEX_PORT_CU_MUX_A_IN]);
+    mvwprintw(window, 6, 2, "\t%-*s %-*d", 38, "MUX MEM IN", 26, cu_elem[INDEX_PORT_CU_MUX_MEM_IN]);
+    mvwprintw(window, 7, 2, "\t%-*s %-*d", 38, "MUX ALU A", 26, cu_elem[INDEX_PORT_CU_MUX_ALU_A]);
+    mvwprintw(window, 8, 2, "\t%-*s %-*d", 38, "MUX ALU B", 26, cu_elem[INDEX_PORT_CU_MUX_ALU_B]);
+    mvwprintw(window, 9, 2, "\t%-*s %-*d", 38, "W EN MEM", 26, cu_elem[INDEX_PORT_CU_W_EN_MEM]);
+    mvwprintw(window, 10, 2, "\t%-*s %-*d", 38, "W EN PC", 26, cu_elem[INDEX_PORT_CU_W_EN_PC]);
+    mvwprintw(window, 11, 2, "\t%-*s %-*d", 38, "W EN A", 26, cu_elem[INDEX_PORT_CU_W_EN_A]);
+    mvwprintw(window, 12, 2, "\t%-*s %-*d", 38, "MUX PC IN", 26, cu_elem[INDEX_PORT_CU_MUX_PC_IN]);
+    mvwprintw(window, 13, 2, "\t%-*s %-*d", 38, "MUX BR", 26, cu_elem[INDEX_PORT_CU_MUX_BR]);
+    mvwprintw(window, 14, 2, "\t%-*s %-*d", 38, "MUX BR FINE", 26, cu_elem[INDEX_PORT_CU_MUX_BR_FINE]);
+    mvwprintw(window, 15, 2, "\t%-*s %-*d", 38, "W EN SP", 26, cu_elem[INDEX_PORT_CU_W_EN_SP]);
+    mvwprintw(window, 16, 2, "\t%-*s %-*d", 38, "W EN B", 26, cu_elem[INDEX_PORT_CU_W_EN_B]);
+    mvwprintw(window, 17, 2, "\t%-*s %-*d", 38, "W EN A", 26, cu_elem[INDEX_PORT_CU_W_EN_A]);
+    mvwprintw(window, 18, 2, "\t%-*s %-*d", 38, "W EN PC", 26, cu_elem[INDEX_PORT_CU_W_EN_PC]);
+    mvwprintw(window, 19, 2, "\t%-*s %-*d", 38, "W EN MEM", 26, cu_elem[INDEX_PORT_CU_W_EN_MEM]);
+
+    wrefresh(window);
+}
+
+
+void draw_control(WINDOW* window) {
+    wattron(window, WA_BOLD);
+    mvwprintw(window, 2, 2, "Control Unit");
+    wattroff(window, WA_BOLD);
+    wrefresh(window);
+}
+
+void init_draw_alu(WINDOW* window) {
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wattron(window, A_UNDERLINE);
+    wattron(window, WA_BOLD);
+    mvwprintw(window, 2, 2, "ALU");
+    wattroff(window, WA_BOLD);
+    wattroff(window, A_UNDERLINE);
+    wrefresh(window);
+}
+
+void draw_alu(WINDOW* window) {
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    mvwprintw(window, 4, 2, "ALU A: %d", alu_elem[0]);
+    mvwprintw(window, 5, 2, "ALU B: %d", alu_elem[1]);
+    mvwprintw(window, 6, 2, "ALU OUT: %d", alu_elem[2]);
+    mvwprintw(window, 7, 2, "ALU SEL: %d", alu_elem[3]);
+    wrefresh(window);
+}
+
+void init_draw_memory(WINDOW* window) {
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wattroff(window, A_UNDERLINE);
+    wattron(window, A_BOLD);
+    wattron(window, A_UNDERLINE);
+    mvwprintw(window, 2, 2, "MEMORY");
+    wattron(window, A_UNDERLINE);
+    wattroff(window, A_BOLD);
+    wrefresh(window);
+}
+
+void draw_memory(WINDOW* window) {
+    wattroff(window, A_UNDERLINE);
+    wattroff(window, A_BOLD);
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    mvwprintw(window, 4, 2, "OUT A : %d", mem_elem[INDEX_PORT_MEM_DOUT_A]);
+    mvwprintw(window, 4, 18, "RADDR A : %d", mem_elem[INDEX_PORT_MEM_RADDR_A]);
+    mvwprintw(window, 5, 2, "OUT B : %d", mem_elem[INDEX_PORT_MEM_DOUT_B]);
+    mvwprintw(window, 5, 18, "RADDR B : %d", mem_elem[INDEX_PORT_MEM_RADDR_B]);
+    mvwprintw(window, 6, 2, "IN : %d", mem_elem[INDEX_PORT_MEM_DIN]);
+    mvwprintw(window, 6, 18, "WEN : %d", mem_elem[INDEX_PORT_MEM_WEN]);
+    mvwprintw(window, 7, 2, "WADDR : %d", mem_elem[INDEX_PORT_MEM_WADDR]);
 
     wrefresh(window);
 }
@@ -349,6 +474,29 @@ void read_all_elements() {
     err = api->get(api, TYPE_CELEM_SP, &val_sp);        
 }
 
+void update_alu() {
+    EmErr err = api->get(api, TYPE_CELEM_ALU, alu_elem);
+    if (err != SUCCESS) {
+        show_error_window("Failed to get ALU elements");
+    }
+}
+
+void update_memory() {
+    EmErr err = api->get(api, TYPE_CELEM_MEM, mem_elem);
+    if (err != SUCCESS) {
+        show_error_window("Failed to get memory elements");
+    }
+}
+
+void update_control_unit() {
+    EmErr err = api->get(api, TYPE_CELEM_CU, cu_elem);
+    if (err != SUCCESS) {
+        char buf[512];
+        snprintf(buf, sizeof(buf), "Failed to get CU elements %d", err);
+        show_error_window(buf);
+    }
+}
+
 void right_handler() {
     if (state == STATUS_HALT) {
         show_message_window("Program Halted");
@@ -357,6 +505,9 @@ void right_handler() {
     if (api != NULL) {
         EmData data;
         EmErr err = api->clock(api, 1);
+        update_control_unit();
+        update_alu();
+        update_memory();
         if (err != SUCCESS) {
             if (err == STATUS_PROG_HALT) {
                 show_message_window("Program halted");
@@ -376,6 +527,25 @@ void right_handler() {
         show_error_window("Failed to initialize emulator API");
     }
 
+}
+
+void burst_mode() {
+    int ch = 0;
+    timeout(2000);
+    show_message_window("Enter the number of clock cycles to burst");
+    timeout(10000);
+    ch = getch();
+
+    if (isalnum(ch)) {
+        int count = ch - '0';
+        int iter;
+        for (iter = 0; iter < count; iter++) {
+            right_handler();
+            if (state == STATUS_HALT) {
+                break;
+            }
+        }
+    }
 }
 
 void handle_input(WINDOW *win_main, WINDOW* win_filename) {
@@ -407,24 +577,63 @@ void handle_input(WINDOW *win_main, WINDOW* win_filename) {
             right_handler();
             break;
         case 'r':
+            restart();
             break;
-        case 's':
+        case 'b':
+            burst_mode();
             break;
-        case 'l':
+        case 'd':
+            dump_memory();
             break;
         default:
             break;
     }
 }
 
+
+void restart() {
+    if (api == NULL) {
+        show_error_window("Failed to initialize emulator API");
+        return;
+    }
+    
+    EmErr err = api->restart(api);
+
+    if (err != SUCCESS) {
+        show_error_window("Failed to reset the emulator");
+        return;
+    }
+    read_all_elements();
+    state = STATUS_RUNNING;
+    update_control_unit();
+    update_memory();
+    update_alu();
+    show_message_window("Emulator reset");
+}
+
+void dump_memory() {
+    FILE* file = fopen("memory.dump", "w");
+    if (file == NULL) {
+        show_error_window("Failed to open file");
+        return;
+    }
+    EmErr err = api->dump_mem(api, file);
+    if (err != SUCCESS) {
+        show_error_window("Failed to dump memory");
+        return;
+    }
+    show_message_window("Memory dumped to file");
+    fclose(file);
+}
+
 void init_draw_footer(WINDOW* footer) {
     int height, width;
     getmaxyx(stdscr, height, width);
 
-    footer = newwin(2, 150, height - 4, width-150);
+    footer = newwin(2, 140, height - 3, (width - 140)/2);
     wattron(footer, A_BOLD);
     wattron(footer, COLOR_PAIR(UI_COLOR_PAIR_6));
-    mvwprintw(footer, 0, 0, "    q: Quit | i: Load program | p: Run | r: Reset | s: Step | b <int>: Burst | up: Code up | down: Code down | right: Next");
+    mvwprintw(footer, 0, 0, "  q: Quit | i: Load program | p: Run | r: Reset | b <int>: Burst | up: Code up | down: Code down | right: pulse | d: Dump memory  ");
     wattroff(footer, COLOR_PAIR(UI_COLOR_PAIR_6));
     wattroff(footer, A_BOLD);
     wrefresh(footer);

@@ -304,30 +304,216 @@ static EmErr _api_get_sp(DP* dp, EmData* buffer) {
     return SUCCESS;
 }
 
-static EmErr _api_get_memory(DP* dp, EmData* buffer_1, EmData* buffer_2) {
-    if (dp == NULL || dp->mem_code == NULL || dp->mem_data == NULL)
+
+static EmErr _api_get_cu(DP* dp, EmData* buffer) {
+    if (dp == NULL)
         return ERR_INV_PTR;
     
-    Port* port_a;
-    EmErr err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_A, &port_a);
+    if (dp->cu == NULL)
+        return ERR_INV_PTR;
+
+    CElem* cu = dp->cu;
+    
+    Port* instr;
+    EmErr err = cu->get_port(cu, TYPE_PORT_INPUT, ID_PORT_CU_INSTR, &instr);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* mux_br;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_BR, &mux_br);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* mux_br_fine;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_BR_FINE, &mux_br_fine);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* w_en_sp;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_W_EN_SP, &w_en_sp);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* w_en_b;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_W_EN_B, &w_en_b);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* w_en_a;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_W_EN_A, &w_en_a);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* mux_pc_in;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_PC_IN, &mux_pc_in);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* w_en_pc;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_W_EN_PC, &w_en_pc);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* mux_alu_a;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_ALU_A, &mux_alu_a);
     if (err != SUCCESS)
         return err;
 
-    err = port_a->inspect(port_a, buffer_1);
+    Port* mux_alu_b;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_ALU_B, &mux_alu_b);
+    if (err != SUCCESS)
+        return err;
+
+    Port* mux_a_in;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_A_IN, &mux_a_in);
     if (err != SUCCESS)
         return err;
     
-    Port* port_b;
-    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_B, &port_b);
+    Port* mux_mem_in;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_MUX_MEM_IN, &mux_mem_in);
     if (err != SUCCESS)
         return err;
     
-    err = port_b->inspect(port_b, buffer_2);
+    Port* w_en_mem;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_W_EN_MEM, &w_en_mem);
     if (err != SUCCESS)
         return err;
+
+    Port* alu_sel;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_ALU_SEL, &alu_sel);
+    if (err != SUCCESS)
+        return err;
+
+    Port* imm;
+    err = cu->get_port(cu, TYPE_PORT_OUTPUT, ID_PORT_CU_IMM, &imm);
+    if (err != SUCCESS)
+        return err;
+
+    EmState instr_val;
+    err = instr->inspect(instr, &instr_val);
+    if (err != SUCCESS)
+        return err;
+
+    EmState opcode = instr_val & 0x00FF;
+    EmState imm_val = (instr_val & 0xFFFFFFF0)>>8;
+    /* Handle negative imm val case */
+    if (imm_val & (1<<23)) {
+        imm_val = imm_val | 0xFFFF0000;
+    }
+
+
+    buffer[INDEX_PORT_CU_OPCODE] = opcode;
+    buffer[INDEX_PORT_CU_INSTR] = instr_val;
+    buffer[INDEX_PORT_CU_W_EN_SP] = w_en_sp->state;
+    buffer[INDEX_PORT_CU_W_EN_B] = w_en_b->state;
+    buffer[INDEX_PORT_CU_W_EN_A] = w_en_a->state;
+    buffer[INDEX_PORT_CU_W_EN_PC] = w_en_pc->state;
+    buffer[INDEX_PORT_CU_W_EN_MEM] = w_en_mem->state;
+    buffer[INDEX_PORT_CU_MUX_PC_IN] = mux_pc_in->state;
+    buffer[INDEX_PORT_CU_MUX_MEM_IN] = mux_mem_in->state;
+    buffer[INDEX_PORT_CU_MUX_A_IN] = mux_a_in->state;
+    buffer[INDEX_PORT_CU_MUX_BR] = mux_br->state;
+    buffer[INDEX_PORT_CU_MUX_BR_FINE] = mux_br_fine->state;
+    buffer[INDEX_PORT_CU_MUX_ALU_A] = mux_alu_a->state;
+    buffer[INDEX_PORT_CU_MUX_ALU_B] = mux_alu_b->state;
+    buffer[INDEX_PORT_CU_MUX_MEM_IN] = mux_mem_in->state;
+    buffer[INDEX_PORT_CU_ALU_SEL] = alu_sel->state;
+    buffer[INDEX_PORT_CU_IMM] = imm_val;
     
     return SUCCESS;
 }
+
+static EmErr _api_get_alu(DP* dp, EmData* buffer) {
+    if (dp == NULL)
+        return ERR_INV_PTR;
+    
+    if (dp->alu == NULL)
+        return ERR_INV_PTR;
+
+    CElem* alu = dp->alu;
+    
+    Port* a;
+    EmErr err = alu->get_port(alu, TYPE_PORT_INPUT, ID_PORT_ALU_INA, &a);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* b;
+    err = alu->get_port(alu, TYPE_PORT_INPUT, ID_PORT_ALU_INB, &b);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* sel;
+    err = alu->get_port(alu, TYPE_PORT_INPUT, ID_PORT_ALU_OP, &sel);
+    if (err != SUCCESS)
+        return err;
+    
+    
+    Port* out;
+    err = alu->get_port(alu, TYPE_PORT_OUTPUT, ID_PORT_ALU_OUT, &out);
+    if (err != SUCCESS)
+        return err;
+    
+    buffer[0] = a->state;
+    buffer[1] = b->state;
+    buffer[2] = sel->state;
+    buffer[3] = out->state;
+    
+    return SUCCESS;
+}
+
+static EmErr _api_get_memory(DP* dp, EmData* buffer) {
+    if (dp == NULL)
+        return ERR_INV_PTR;
+    
+    if (dp->mem_code == NULL || dp->mem_data == NULL)
+        return ERR_INV_PTR;
+
+    Port* a;
+    EmErr err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_A, &a);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* b;
+    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_OUTPUT, ID_PORT_MEM_DOUT_B, &b);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in;
+    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_INPUT, ID_PORT_MEM_DIN, &in);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* w_en;
+    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_INPUT, ID_PORT_MEM_WEN, &w_en);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* addr;
+    err = dp->mem_data->get_port(dp->mem_data, TYPE_PORT_INPUT, ID_PORT_MEM_WADDR, &addr);
+    if (err != SUCCESS)
+        return err;
+
+    Port* raddr_a;
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_RADDR_A, &raddr_a);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* raddr_b;
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_RADDR_B, &raddr_b);
+    if (err != SUCCESS)
+        return err;
+
+    buffer[INDEX_PORT_MEM_DOUT_A] = a->state;
+    buffer[INDEX_PORT_MEM_DOUT_B] = b->state;
+    buffer[INDEX_PORT_MEM_DIN] = in->state;
+    buffer[INDEX_PORT_MEM_WEN] = w_en->state;
+    buffer[INDEX_PORT_MEM_WADDR] = addr->state;
+    buffer[INDEX_PORT_MEM_RADDR_A] = raddr_a->state;
+    buffer[INDEX_PORT_MEM_RADDR_B] = raddr_b->state;
+
+    return SUCCESS;
+}
+
 
 static EmErr _api_get(API* api, EmType type, EmByte* buffer) {
     if (api == NULL || api->_dp == NULL)
@@ -348,7 +534,13 @@ static EmErr _api_get(API* api, EmType type, EmByte* buffer) {
             err = _api_get_sp(api->_dp, buffer);
             break;
         case TYPE_CELEM_MEM:
-            err = _api_get_memory(api->_dp, buffer, buffer + 1);
+            err = _api_get_memory(api->_dp, buffer);
+            break;
+        case TYPE_CELEM_ALU:
+            err = _api_get_alu(api->_dp, buffer);
+            break; 
+        case TYPE_CELEM_CU:
+            err = _api_get_cu(api->_dp, buffer);
             break;
         default:
             return ERR_INV_PTR;
@@ -367,6 +559,20 @@ void _api_destroy(API* api) {
     free(api);
 
     return;
+}
+
+static EmErr _api_reset(API* api) {
+    if (api == NULL)
+        return ERR_INV_PTR;
+    
+    if (api->_dp == NULL)
+        return ERR_INV_PTR;
+    
+    EmErr err = api->_dp->restart(api->_dp);
+    if (err != SUCCESS)
+        return err;
+    
+    return err;
 }
 
 EmErr get_api(API** ptr) {
@@ -388,7 +594,7 @@ EmErr get_api(API** ptr) {
     api->_dp = dp;
     api->reset = NULL;
     api->load = _api_load;
-    api->restart = NULL;
+    api->restart = _api_reset;
     api->get = _api_get;
     api->dump_mem = _api_dump_memory;
     api->clock = _api_clock;
