@@ -202,6 +202,100 @@ void init_draw_main(WINDOW* win_main) {
     wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_4));
     snprintf(buf, sizeof(buf), "LSD Emulator");
     mvwprintw(win_main, 10, 4, buf);
+
+    wattron(win_main, COLOR_PAIR(UI_COLOR_PAIR_7));
+    int x = 4, y = 0;
+    mvwprintw(win_main, y+8,  x+65, " ");
+    mvwprintw(win_main, y+9,  x+65, " ");
+    mvwprintw(win_main, y+10, x+65, " ");
+    mvwprintw(win_main, y+11, x+65, " ");
+    mvwprintw(win_main, y+12, x+65, " ");
+    mvwprintw(win_main, y+13, x+65, " ");
+    mvwprintw(win_main, y+14, x+65, " ");
+    mvwprintw(win_main, y+15, x+65, " ");
+    mvwprintw(win_main, y+16, x+65, " ");
+    mvwprintw(win_main, y+16, x+65, " ");
+    mvwprintw(win_main, y+17, x+65, " ");
+    mvwprintw(win_main, y+18, x+65, " ");
+    mvwprintw(win_main, y+18, x+66, " ");
+    mvwprintw(win_main, y+18, x+67, " ");
+    mvwprintw(win_main, y+18, x+68, " ");
+    mvwprintw(win_main, y+18, x+69, " ");
+    mvwprintw(win_main, y+18, x+70, " ");
+    mvwprintw(win_main, y+18, x+71, " ");
+    mvwprintw(win_main, y+18, x+72, " ");
+    mvwprintw(win_main, y+18, x+73, " ");
+    mvwprintw(win_main, y+18, x+74, " ");
+    mvwprintw(win_main, y+18, x+75, " ");
+    mvwprintw(win_main, y+18, x+76, " ");
+    mvwprintw(win_main, y+18, x+77, " ");
+    mvwprintw(win_main, y+18, x+78, " ");
+    wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_7));
+    wattron(win_main, COLOR_PAIR(UI_COLOR_PAIR_11));
+    x = -2;
+    mvwprintw(win_main, y+14, x+65, " ");
+    mvwprintw(win_main, y+14, x+66, " ");
+    mvwprintw(win_main, y+14, x+67, " ");
+    mvwprintw(win_main, y+14, x+68, " ");
+    mvwprintw(win_main, y+14, x+69, " ");
+    mvwprintw(win_main, y+14, x+70, " ");
+    mvwprintw(win_main, y+14, x+71, " ");
+    mvwprintw(win_main, y+14, x+72, " ");
+    mvwprintw(win_main, y+14, x+73, " ");
+    mvwprintw(win_main, y+14, x+74, " ");
+    mvwprintw(win_main, y+14, x+75, " ");
+    mvwprintw(win_main, y+14, x+76, " ");
+    mvwprintw(win_main, y+14, x+77, " ");
+    mvwprintw(win_main, y+14, x+78, " ");
+    mvwprintw(win_main, y+15, x+65, " ");
+    EmInt i;
+    for (i = 0; i < 6; i++) {
+        mvwprintw(win_main, y+15+i, x+65, " ");
+    }
+    for (i = 0; i < 14; i++) {
+        mvwprintw(win_main, y+20, x+65+i, " ");
+    }
+    for (i = 0; i < 6; i++) {
+        mvwprintw(win_main, y+20+i, x+65+13, " ");
+    }
+    for (i = 0; i < 14; i++) {
+        mvwprintw(win_main, y+25, x+65+i, " ");
+    }
+    x = 4;
+    wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_11));
+    wattron(win_main, COLOR_PAIR(UI_COLOR_PAIR_12));
+    for (i = 0; i < 10; i++) {
+        mvwprintw(win_main, y+23+i, x+65, " ");
+    }
+    for (i = 0; i < 13; i++) {
+        mvwprintw(win_main, y+32, x+65+i, " ");
+    }
+    for (i = 0; i < 8; i++) {
+        mvwprintw(win_main, y+24+i, x+78, " ");
+    }
+    for (i = 0; i < 13; i++) {
+        mvwprintw(win_main, y+23, x+65+i, " ");
+    }
+    wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_12));
+
+    char* text = "\"From a rock fallen to the depth\"";
+    char* line2 = "\"echoes the call of revelation\"";
+    char* line3 = "\"arcane are named those breath\"";
+    char* line4 = "\"plenty of weeds and fishes in the ocean\"";
+    int col1 = 80 - strlen(text) / 2;
+    int col2 = 80 - strlen(line2) / 2;
+    int col3 = 80 - strlen(line3) / 2;
+    int col4 = 80 - strlen(line4) / 2;
+    wattron(win_main, A_BOLD);
+    wattron(win_main, COLOR_PAIR(UI_COLOR_PAIR_5));
+    mvwprintw(win_main, 38, col1, text);
+    mvwprintw(win_main, 39, col2, line2);
+    mvwprintw(win_main, 40, col3, line3);
+    mvwprintw(win_main, 41, col4, line4);
+    wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_5));
+    wattron(win_main, COLOR_PAIR(UI_COLOR_PAIR_4));
+    mvwprintw(win_main, 43, 80, "- Developer");
+    wattroff(win_main, COLOR_PAIR(UI_COLOR_PAIR_4));
     wattroff(win_main, A_BOLD);
 
     wrefresh(win_main);
