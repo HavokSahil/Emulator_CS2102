@@ -461,6 +461,92 @@ static EmErr _api_get_alu(DP* dp, EmData* buffer) {
     return SUCCESS;
 }
 
+static EmErr _api_get_mux_2x1_mem(DP* dp, EmData* buffer) {
+    if (dp == NULL)
+        return ERR_INV_PTR;
+    
+    if (dp->mux_mem_in == NULL)
+        return ERR_INV_PTR;
+
+    CElem* mux = dp->mux_mem_in;
+    
+    Port* out;
+    EmErr err = mux->get_port(mux, TYPE_PORT_OUTPUT, ID_PORT_MUX_2X1_OUT, &out);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_0;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INA, &in_0);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_1;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_INB, &in_1);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* sel;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_2X1_CTR, &sel);
+    if (err != SUCCESS)
+        return err;
+    
+    buffer[INDEX_PORT_MUX_2X1_IN_0] = in_0->state;
+    buffer[INDEX_PORT_MUX_2X1_IN_1] = in_1->state;
+    buffer[INDEX_PORT_MUX_2X1_SEL] = sel->state;
+    buffer[INDEX_PORT_MUX_2X1_OUT] = out->state;
+    
+    return SUCCESS;
+}
+
+static EmErr _api_get_a_in_mux4x1(DP* dp, EmData* buffer) {
+    if (dp == NULL)
+        return ERR_INV_PTR;
+    
+    if (dp->mux_a_in == NULL)
+        return ERR_INV_PTR;
+
+    CElem* mux = dp->mux_a_in;
+    
+    Port* out;
+    EmErr err = mux->get_port(mux, TYPE_PORT_OUTPUT, ID_PORT_MUX_4X1_OUT, &out);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_0;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INA, &in_0);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_1;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INB, &in_1);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_2;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_INC, &in_2);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* in_3;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_IND, &in_3);
+    if (err != SUCCESS)
+        return err;
+    
+    Port* sel;
+    err = mux->get_port(mux, TYPE_PORT_INPUT, ID_PORT_MUX_4X1_CTR, &sel);
+    if (err != SUCCESS)
+        return err;
+    
+    buffer[INDEX_PORT_MUX_4X1_IN_0] = in_0->state;
+    buffer[INDEX_PORT_MUX_4X1_IN_1] = in_1->state;
+    buffer[INDEX_PORT_MUX_4X1_IN_2] = in_2->state;
+    buffer[INDEX_PORT_MUX_4X1_IN_3] = in_3->state;
+    buffer[INDEX_PORT_MUX_4X1_SEL] = sel->state;
+    buffer[INDEX_PORT_MUX_4X1_OUT] = out->state;
+    
+    return SUCCESS;
+}
+
 static EmErr _api_get_memory(DP* dp, EmData* buffer) {
     if (dp == NULL)
         return ERR_INV_PTR;
@@ -541,6 +627,12 @@ static EmErr _api_get(API* api, EmType type, EmByte* buffer) {
             break; 
         case TYPE_CELEM_CU:
             err = _api_get_cu(api->_dp, buffer);
+            break;
+        case TYPE_CELEM_MUX_2X1:
+            err = _api_get_mux_2x1_mem(api->_dp, buffer);
+            break;
+        case TYPE_CELEM_MUX_4X1:
+            err = _api_get_a_in_mux4x1(api->_dp, buffer);
             break;
         default:
             return ERR_INV_PTR;

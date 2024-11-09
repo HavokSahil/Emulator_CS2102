@@ -315,7 +315,7 @@ static EmErr _dp_control_unit_stnl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
-    err = pc_w_en->update(pc_w_en, 0); 
+    err = pc_w_en->update(pc_w_en, 1); 
     if (err != SUCCESS)
         return err;
 
@@ -2746,6 +2746,10 @@ static EmErr _dp_restart(DP* dp) {
     if (err != SUCCESS)
         return err;
 
+    err = dp->mem_data->transition(dp->mem_data);
+    if (err != SUCCESS)
+        return err;
+
     return SUCCESS;
 }
 
@@ -2834,9 +2838,25 @@ static EmErr _dp_clock(DP* dp) {
     if (err != SUCCESS)
         return err;
     
-    err = dp->mem_code->propogate(dp->mem_code);
+    err = dp->mem_data->propogate(dp->mem_code);
     if (err != SUCCESS)
         return err;
+    
+    Port* mem_wen;
+    err = dp->mem_code->get_port(dp->mem_code, TYPE_PORT_INPUT, ID_PORT_MEM_WEN, &mem_wen);
+    if (err != SUCCESS)
+        return err;
+    
+    if (mem_wen->state == ENABLE) {
+        err = dp->mem_code->transition(dp->mem_code);
+        if (err != SUCCESS)
+            return err;
+        mem_wen->state = DISABLE;
+    } else {
+        err = dp->mem_data->transition(dp->mem_data);
+        if (err != SUCCESS)
+        return err;
+    }
 
     return SUCCESS;
 }

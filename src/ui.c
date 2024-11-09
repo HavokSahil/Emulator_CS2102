@@ -23,6 +23,8 @@ void init_draw_memory(WINDOW* window);
 void draw_memory(WINDOW* window);
 void init_draw_alu(WINDOW* window);
 void draw_alu(WINDOW* window);
+void draw_mux2x1(WINDOW* window, EmData* data);
+void draw_mux4x1(WINDOW* window, EmData* data); 
 
 #define STATUS_HALT 0
 #define STATUS_RUNNING 1
@@ -41,6 +43,8 @@ EmState state = STATUS_RUNNING;
 EmData cu_elem[BUFFER_SIZE_CU_CELEM];
 EmData mem_elem[BUFFER_SIZE_MEM_CELEM];
 EmData alu_elem[4];
+EmData mux2x1_elem[4];
+EmData mux4x1_elem[6];
 
 
 int main(int argc, char *argv[]) {
@@ -79,6 +83,9 @@ int main(int argc, char *argv[]) {
     WINDOW* control = newwin(comp_height*2 + 2, comp_width*2 + gap_x, comp_y + 2*comp_height + 2*gap_y, comp_x);
     WINDOW* alu = newwin(comp_height, comp_width, comp_y + comp_height + gap_y, comp_x - 40);
     WINDOW* memory = newwin(comp_height, comp_width, comp_y, comp_x - 40);
+    WINDOW* mux2x1 = newwin(comp_height, comp_width, comp_y + 2*comp_height + 2*gap_y, comp_x - 40);
+    WINDOW* mux4x1 = newwin(comp_height, comp_width, comp_y + 3*comp_height + 3*gap_y, comp_x - 40);
+
 
     EmErr err = get_api(&api);
     if (err != SUCCESS) {
@@ -100,6 +107,9 @@ int main(int argc, char *argv[]) {
     init_draw_control(control);
     init_draw_memory(memory);
     init_draw_alu(alu);
+    draw_mux2x1(mux2x1, mux2x1_elem);
+    draw_mux4x1(mux4x1, mux4x1_elem);
+
 
     timeout(100);
 
@@ -112,6 +122,8 @@ int main(int argc, char *argv[]) {
         init_draw_control(control);
         draw_memory(memory);
         draw_alu(alu);
+        draw_mux2x1(mux2x1, mux2x1_elem);
+        draw_mux4x1(mux4x1, mux4x1_elem);
 
         handle_input(win_main, win_filename);
     }
@@ -142,6 +154,7 @@ void init_ncurses() {
         init_pair(UI_COLOR_PAIR_9, COLOR_WHITE, COLOR_GREEN);
         init_pair(UI_COLOR_PAIR_10, COLOR_WHITE, COLOR_CYAN);
         init_pair(UI_COLOR_PAIR_11, COLOR_WHITE, COLOR_MAGENTA);
+        init_pair(UI_COLOR_PAIR_12, COLOR_WHITE, COLOR_YELLOW);
     }
 }
 
@@ -338,8 +351,8 @@ void draw_alu(WINDOW* window) {
     wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
     mvwprintw(window, 4, 2, "ALU A: %d", alu_elem[0]);
     mvwprintw(window, 5, 2, "ALU B: %d", alu_elem[1]);
-    mvwprintw(window, 6, 2, "ALU OUT: %d", alu_elem[2]);
-    mvwprintw(window, 7, 2, "ALU SEL: %d", alu_elem[3]);
+    mvwprintw(window, 6, 2, "ALU OUT: %d", alu_elem[3]);
+    mvwprintw(window, 7, 2, "ALU SEL: %d", alu_elem[2]);
     wrefresh(window);
 }
 
@@ -362,6 +375,14 @@ void draw_memory(WINDOW* window) {
     wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
     wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    /* Delete all the present values*/
+    EmInt i;
+    EmInt j;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 32; j++) {
+            mvwprintw(window, 4 + i, 2+j, " ");
+        }
+    }
     mvwprintw(window, 4, 2, "OUT A : %d", mem_elem[INDEX_PORT_MEM_DOUT_A]);
     mvwprintw(window, 4, 18, "RADDR A : %d", mem_elem[INDEX_PORT_MEM_RADDR_A]);
     mvwprintw(window, 5, 2, "OUT B : %d", mem_elem[INDEX_PORT_MEM_DOUT_B]);
@@ -370,6 +391,54 @@ void draw_memory(WINDOW* window) {
     mvwprintw(window, 6, 18, "WEN : %d", mem_elem[INDEX_PORT_MEM_WEN]);
     mvwprintw(window, 7, 2, "WADDR : %d", mem_elem[INDEX_PORT_MEM_WADDR]);
 
+    wrefresh(window);
+}
+
+void draw_mux2x1(WINDOW* window, EmData* data) {
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_12));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_12));
+    wattron(window, A_UNDERLINE);
+    wattron(window, WA_BOLD);
+    mvwprintw(window, 2, 2, "MUX 2X1 M in");
+    wattroff(window, WA_BOLD);
+    wattroff(window, A_UNDERLINE);
+    EmInt i;
+    EmInt j;
+    for (i = 0; i < 2; i++) {
+        for (j = 0; j < 32; j++) {
+            mvwprintw(window, 4 + i, 2+j, " ");
+        }
+    }
+    mvwprintw(window, 4, 2, "IN 0 : %d", data[INDEX_PORT_MUX_2X1_IN_0]);
+    mvwprintw(window, 4, 18, "IN 1 : %d", data[INDEX_PORT_MUX_2X1_IN_1]);
+    mvwprintw(window, 5, 2, "OUT : %d", data[INDEX_PORT_MUX_2X1_OUT]);
+    mvwprintw(window, 5, 18, "SEL : %d", data[INDEX_PORT_MUX_2X1_SEL]);
+    wrefresh(window);
+}
+
+void draw_mux4x1(WINDOW* window, EmData* data) {
+    wattron(window, COLOR_PAIR(UI_COLOR_PAIR_12));
+    wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_12));
+    wattron(window, A_UNDERLINE);
+    wattron(window, WA_BOLD);
+    mvwprintw(window, 2, 2, "MUX 4X1 (A in)");
+    wattroff(window, WA_BOLD);
+    wattroff(window, A_UNDERLINE);
+     EmInt i;
+    EmInt j;
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 32; j++) {
+            mvwprintw(window, 4 + i, 2+j, " ");
+        }
+    }
+    mvwprintw(window, 4, 2, "IN 0 : %d", data[INDEX_PORT_MUX_4X1_IN_0]);
+    mvwprintw(window, 4, 18, "IN 1 : %d", data[INDEX_PORT_MUX_4X1_IN_1]);
+    mvwprintw(window, 5, 2, "IN 2 : %d", data[INDEX_PORT_MUX_4X1_IN_2]);
+    mvwprintw(window, 5, 18, "IN 3 : %d", data[INDEX_PORT_MUX_4X1_IN_3]);
+    mvwprintw(window, 6, 2, "OUT : %d", data[INDEX_PORT_MUX_4X1_OUT]);
+    mvwprintw(window, 6, 18, "SEL : %d", data[INDEX_PORT_MUX_4X1_SEL]);
     wrefresh(window);
 }
 
@@ -497,6 +566,20 @@ void update_control_unit() {
     }
 }
 
+void update_mux2x1() {
+    EmErr err = api->get(api, TYPE_CELEM_MUX_2X1, mux2x1_elem);
+    if (err != SUCCESS) {
+        show_error_window("Failed to get MUX 2X1 elements");
+    }
+}
+
+void update_mux4x1() {
+    EmErr err = api->get(api, TYPE_CELEM_MUX_4X1, mux4x1_elem);
+    if (err != SUCCESS) {
+        show_error_window("Failed to get MUX 4X1 elements");
+    }
+}
+
 void right_handler() {
     if (state == STATUS_HALT) {
         show_message_window("Program Halted");
@@ -508,9 +591,11 @@ void right_handler() {
         update_control_unit();
         update_alu();
         update_memory();
+        update_mux2x1();
+        update_mux4x1();
         if (err != SUCCESS) {
             if (err == STATUS_PROG_HALT) {
-                show_message_window("Program halted");
+                show_message_window("Program Halted");
                 read_all_elements();
                 state = STATUS_HALT;
                return;
@@ -608,6 +693,8 @@ void restart() {
     update_control_unit();
     update_memory();
     update_alu();
+    update_mux2x1();
+    update_mux4x1();
     show_message_window("Emulator reset");
 }
 

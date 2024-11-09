@@ -879,6 +879,8 @@ static EmErr _dev_mem_tf(CElem* celem) {
 			return err;
 		
 		dout_a->state = data_a;
+	} else {
+		dout_a->state = 0;
 	}
 
 
@@ -891,6 +893,8 @@ static EmErr _dev_mem_tf(CElem* celem) {
 		err = dout_b->update(dout_b, data_b);
 		if (err != SUCCESS)
 			return err;
+	} else {
+		dout_b->state = 0;
 	}
 
 	return SUCCESS;
