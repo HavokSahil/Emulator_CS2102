@@ -443,6 +443,13 @@ void draw_alu(WINDOW* window) {
     wattron(window, COLOR_PAIR(UI_COLOR_PAIR_11));
     wborder(window, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     wattroff(window, COLOR_PAIR(UI_COLOR_PAIR_11));
+    EmInt i;
+    EmInt j;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 32; j++) {
+            mvwprintw(window, 4 + i, 2+j, " ");
+        }
+    }
     mvwprintw(window, 4, 2, "ALU A: %d", alu_elem[0]);
     mvwprintw(window, 5, 2, "ALU B: %d", alu_elem[1]);
     mvwprintw(window, 6, 2, "ALU OUT: %d", alu_elem[3]);

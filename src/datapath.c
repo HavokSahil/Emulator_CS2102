@@ -323,6 +323,10 @@ static EmErr _dp_control_unit_stnl(Port* mux_br, Port* w_en_sp, Port* w_en_b, Po
     if (err != SUCCESS)
         return err;
 
+    err = mux_mem_in->update(mux_mem_in, 0);
+    if (err != SUCCESS)
+        return err;
+
     err = mux_alu_a->update(mux_alu_a, 1); 
     if (err != SUCCESS)
         return err;
